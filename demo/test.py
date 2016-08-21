@@ -1,12 +1,16 @@
+from flask import Flask,request,json, jsonify
+from flask_restful import Api, Resource
 from plaid import Client
 from plaid import errors as plaid_errors
 from plaid.utils import json
 from peewee import *
 
 
-database = SqliteDatabase("test.db")
+webapp = Flask(__name__)
+api = Api(webapp)
 
-"Base model class, created to cause other models to automatically be stored in called database"
+
+# Base model class, created to cause other models to automatically be stored in called database
 class BaseModel(Model):
     class Meta:
         database = database
@@ -15,12 +19,18 @@ class BaseModel(Model):
 class User(BaseModel):
     username = CharField(unique=True)
     password = CharField()
-    email = CharField()
-    join_date = DateTimeField()
+    accessToken = CharField()
 
     class Meta:
         order_by = ('username',)
 
+# the user model specifies its fields (or columns) declaratively, like django
+class Credentials(BaseModel):
+    id = CharField(unique=True)
+    secret = CharField()
+
+    class Meta:
+        order_by = ('id',)
 
 def answer_mfa(data):
     if data['type'] == 'questions':
@@ -34,6 +44,11 @@ def answer_mfa(data):
         return answer_selections(data['mfa'])
     else:
         raise Exception('Unknown mfa type from Plaid')
+
+
+Client.config({
+    'url': 'https://tartan.plaid.com'
+})
 
 
 def answer_question(questions):
@@ -65,15 +80,20 @@ def answer_selections(selections):
     return client.connect_step(account_type, answer)
 
 
-Client.config({
-    'url': 'https://tartan.plaid.com'
-})
+@api.resource('/users/<user>')
+class api_users(Resource):
+    id = '57b4faff66710877408d0856'             # obtain id and secret from db, same for all queries
+    secret = '45d1a44d9c7a4f3ede7d61bfc32630'
+    client = Client(client_id=id, secret=secret)
+    account_type = 'chase'
+
 
 id = '57b4faff66710877408d0856'
 secret = '45d1a44d9c7a4f3ede7d61bfc32630'
 client = Client(client_id=id, secret=secret)
 account_type = 'chase'
 
+#endpoint: username, password
 
 try:
     response = client.connect(account_type, {
@@ -126,3 +146,7 @@ print(transactions)
 #response = client.info_get()
 #info = response.json()
 #print(info)
+
+if __name__ == '__main__':
+    database = SqliteDatabase("test.db")
+    webapp.run(debug=True)
