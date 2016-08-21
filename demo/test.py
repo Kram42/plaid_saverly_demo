@@ -4,6 +4,24 @@ from plaid.utils import json
 from peewee import *
 
 
+database = SqliteDatabase("test.db")
+
+"Base model class, created to cause other models to automatically be stored in called database"
+class BaseModel(Model):
+    class Meta:
+        database = database
+
+# the user model specifies its fields (or columns) declaratively, like django
+class User(BaseModel):
+    username = CharField(unique=True)
+    password = CharField()
+    email = CharField()
+    join_date = DateTimeField()
+
+    class Meta:
+        order_by = ('username',)
+
+
 def answer_mfa(data):
     if data['type'] == 'questions':
         # Ask your user for the answer to the question[s].
