@@ -4,10 +4,13 @@ from plaid import Client
 from plaid import errors as plaid_errors
 from plaid.utils import json
 from peewee import *
+from playhouse.shortcuts import model_to_dict, dict_to_model
 
 
 webapp = Flask(__name__)
 api = Api(webapp)
+database = SqliteDatabase("test.db")
+database.connect()
 
 
 # Base model class, created to cause other models to automatically be stored in called database
@@ -18,21 +21,40 @@ class BaseModel(Model):
 # the user model specifies its fields (or columns) declaratively, like django
 class User(BaseModel):
     username = CharField(unique=True)
-    password = CharField()
+    #password = CharField()
     accessToken = CharField()
 
     class Meta:
         order_by = ('username',)
 
 # the user model specifies its fields (or columns) declaratively, like django
-class Credentials(BaseModel):
-    id = CharField(unique=True)
+"""class Credentials(BaseModel):
+    name = CharField(unique=True)
+    id = CharField()
     secret = CharField()
 
     class Meta:
-        order_by = ('id',)
+        order_by = ('name',)"""
 
-def answer_mfa(data):
+
+#database.create_table(User)
+
+
+Client.config({
+    'url': 'https://tartan.plaid.com'
+})
+#ident = Person.get(Person.name == 'Grandma L.')
+#print(ident)
+"""ident = Credentials(name = 'main', id = '57b4faff66710877408d0856', secret = '45d1a44d9c7a4f3ede7d61bfc32630')
+ident.save()
+ident = Credentials.get(Credentials.name == 'main')
+print(ident)"""
+id = '57b4faff66710877408d0856'             # obtain id and secret from db, same for all queries
+secret = '45d1a44d9c7a4f3ede7d61bfc32630'
+client = Client(client_id=id, secret=secret)
+
+
+def answer_mfa(data, client):
     if data['type'] == 'questions':
         # Ask your user for the answer to the question[s].
         # Although questions is a list, there is only ever a
@@ -45,22 +67,15 @@ def answer_mfa(data):
     else:
         raise Exception('Unknown mfa type from Plaid')
 
-
-Client.config({
-    'url': 'https://tartan.plaid.com'
-})
-
-
-def answer_question(questions):
+def answer_question(questions): #questions
     # We have magically inferred the answer
     # so we respond immediately
     # In the real world, we would present questions[0]
     # to our user and submit their response
     answer = 'dogs'
-    return client.connect_step(account_type, answer)
+    return client.connect_step('chase', answer) #replace 'chase' with account_type in full program
 
-
-def answer_list(devices):
+def answer_list(devices): #devices
     # You should specify the device to which the passcode is sent.
     # The available devices are present in the devices list
     code = input("Enter code: ")
@@ -68,8 +83,7 @@ def answer_list(devices):
         'send_method': {'type': 'email'}
     })
 
-
-def answer_selections(selections):
+def answer_selections(selections): #selections
     # We have magically inferred the answers
     # so we respond immediately
     # In the real world, we would present the selection
@@ -77,58 +91,61 @@ def answer_selections(selections):
     # in a JSON-encoded array with answers provided
     # in the same order as the given questions
     answer = json.dumps(['Yes', 'No'])
-    return client.connect_step(account_type, answer)
+    return client.connect_step('chase', answer)
 
 
 @api.resource('/users/<user>')
-class api_users(Resource):
-    id = '57b4faff66710877408d0856'             # obtain id and secret from db, same for all queries
-    secret = '45d1a44d9c7a4f3ede7d61bfc32630'
-    client = Client(client_id=id, secret=secret)
-    account_type = 'chase'
+class api_user(Resource):
+    def post(self, user):
+        jsonData = request.get_json(cache=False)
 
+        client = Client(client_id=id, secret=secret)
+        account_type = 'chase'
 
-id = '57b4faff66710877408d0856'
-secret = '45d1a44d9c7a4f3ede7d61bfc32630'
-client = Client(client_id=id, secret=secret)
-account_type = 'chase'
-
-#endpoint: username, password
-
-try:
-    response = client.connect(account_type, {
-        'username': 'tedwerbel0901',
-        'password': '#Saverly7114#'
-    })
-except plaid_errors.UnauthorizedError:
-    print("Password Error")
-else:
-    if response.status_code == 200:
-        # User connected
-        data = response.json()
-        print(data)
-        access_token = data['access_token']
-        print(access_token)
-    elif response.status_code == 201:
-        # MFA required
         try:
-            mfa_response = answer_mfa(response.json())
-            print(mfa_response)
-        except plaid_errors.PlaidError:
-            print("MFA Error")
+            response = client.connect(account_type, {
+                'username': user,  # tedwerbel0901
+                'password': jsonData['password']   # #Saverly7114#
+            })
+        except plaid_errors.UnauthorizedError:
+            print("Password Error")
         else:
-            # User connected
-            data = response.json()
-            print(data)
-            access_token = data['access_token']
-            print(access_token)
+            if response.status_code == 200:
+                # User connected
+                data = response.json()
+                print(data)
+                access_token = data['access_token']
+                print(access_token)
+                newUser = User(username = user, accessToken = access_token)
+                newUser.save()
+                currentUser = user;
+                userData = User.get(User.username == user)
+                userData = jsonify(model_to_dict(userData))
+                print(userData)
+                return userData
+            elif response.status_code == 201:
+                # MFA required
+                try:
+                    mfa_response = answer_mfa(response.json())
+                    print(mfa_response)
+                except plaid_errors.PlaidError:
+                    print("MFA Error")
+                else:
+                    # User connected
+                    data = response.json()
+                    print(data)
+                    access_token = data['access_token']
+                    print(access_token)
+                    newUser = User(username = user, accessToken = access_token)
+                    newUser.save()
+                    currentUser = user;
 
 
-institutions = client.institutions().json()
-print(institutions)
+#institutions = client.institutions().json()
+#print(institutions)
 
-categories = client.categories().json()
-print(categories)
+#categories = client.categories().json()
+#print(categories)
 
 #client = Client(client_id=id, secret=secret, access_token=access_token)
 #response = client.upgrade("auth")
@@ -136,17 +153,16 @@ print(categories)
 #accounts = client.auth_get().json()
 #print(accounts)
 
-balance = client.balance()
-print(balance)
+#balance = client.balance()
+#print(balance)
 
-response = client.connect_get()
-transactions = response.json()
-print(transactions)
+#response = client.connect_get()
+#transactions = response.json()
+#print(transactions)
 
 #response = client.info_get()
 #info = response.json()
 #print(info)
 
 if __name__ == '__main__':
-    database = SqliteDatabase("test.db")
     webapp.run(debug=True)
