@@ -45,13 +45,14 @@ Client.config({
 })
 #ident = Person.get(Person.name == 'Grandma L.')
 #print(ident)
-"""ident = Credentials(name = 'main', id = '57b4faff66710877408d0856', secret = '45d1a44d9c7a4f3ede7d61bfc32630')
+id = "57b4faff66710877408d0856"             # obtain id and secret from db, same for all queries
+secret = "45d1a44d9c7a4f3ede7d61bfc32630"
+"""ident = Credentials(name = 'main', id = id, secret = secret)
 ident.save()
 ident = Credentials.get(Credentials.name == 'main')
 print(ident)"""
-id = '57b4faff66710877408d0856'             # obtain id and secret from db, same for all queries
-secret = '45d1a44d9c7a4f3ede7d61bfc32630'
 client = Client(client_id=id, secret=secret)
+account_type = 'chase'
 
 
 def answer_mfa(data, client):
@@ -99,9 +100,6 @@ class api_user(Resource):
     def post(self, user):
         jsonData = request.get_json(cache=False)
 
-        client = Client(client_id=id, secret=secret)
-        account_type = 'chase'
-
         try:
             response = client.connect(account_type, {
                 'username': user,  # tedwerbel0901
@@ -118,10 +116,8 @@ class api_user(Resource):
                 print(access_token)
                 newUser = User(username = user, accessToken = access_token)
                 newUser.save()
-                currentUser = user;
                 userData = User.get(User.username == user)
                 userData = jsonify(model_to_dict(userData))
-                print(userData)
                 return userData
             elif response.status_code == 201:
                 # MFA required
@@ -138,8 +134,34 @@ class api_user(Resource):
                     print(access_token)
                     newUser = User(username = user, accessToken = access_token)
                     newUser.save()
-                    currentUser = user;
+                    userData = User.get(User.username == user)
+                    userData = jsonify(model_to_dict(userData))
+                    return userData
 
+@api.resource('/users/info')
+class api_info(Resource):
+   def get(self):
+       client.upgrade('info')
+       info = client.info_get().json()
+       return info
+
+@api.resource('/users/balances')
+class api_balances(Resource):
+   def get(self):
+       balance = client.balance().json()
+       return balance
+
+@api.resource('/users/transactions')
+class api_transactions(Resource):
+   def get(self):
+       transactions = client.connect_get().json()
+       return transactions
+
+@api.resource('/institutions')
+class api_institutions(Resource):
+   def get(self):
+       institutions = client.institutions().json()
+       return institutions
 
 #institutions = client.institutions().json()
 #print(institutions)
