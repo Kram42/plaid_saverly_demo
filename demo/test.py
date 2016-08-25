@@ -138,22 +138,37 @@ class api_user(Resource):
                     userData = jsonify(model_to_dict(userData))
                     return userData
 
-@api.resource('/users/info')
+@api.resource('/users/<user>/info')
 class api_info(Resource):
-   def get(self):
+   def get(self, user):
+       userData = User.get(User.username == user)
+       userData = model_to_dict(userData)
+       access_token = userData['accessToken']
+       print(access_token)
+       client = Client(client_id=id, secret=secret, access_token=access_token)
        client.upgrade('info')
        info = client.info_get().json()
        return info
 
-@api.resource('/users/balances')
+@api.resource('/users/<user>/balances')
 class api_balances(Resource):
-   def get(self):
+   def get(self, user):
+       userData = User.get(User.username == user)
+       userData = model_to_dict(userData)
+       access_token = userData['accessToken']
+       print(access_token)
+       client = Client(client_id=id, secret=secret, access_token=access_token)
        balance = client.balance().json()
        return balance
 
-@api.resource('/users/transactions')
+@api.resource('/users/<user>/transactions')
 class api_transactions(Resource):
-   def get(self):
+   def get(self, user):
+       userData = User.get(User.username == user)
+       userData = model_to_dict(userData)
+       access_token = userData['accessToken']
+       print(access_token)
+       client = Client(client_id=id, secret=secret, access_token=access_token)
        transactions = client.connect_get().json()
        return transactions
 
