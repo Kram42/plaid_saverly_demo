@@ -97,6 +97,9 @@ def answer_selections(selections): #selections
 
 @api.resource('/users/<user>')
 class api_user(Resource):
+    # params: Json data - {'password':[password here]}
+    # returns: Json data - stored info {"accesstoken", "id", "username"}
+    # Creates a connect user based on url username and parameter password, then stores relevant information in the database.
     def post(self, user):
         jsonData = request.get_json(cache=False)
 
@@ -111,9 +114,9 @@ class api_user(Resource):
             if response.status_code == 200:
                 # User connected
                 data = response.json()
-                print(data)
+                #print(data)
                 access_token = data['access_token']
-                print(access_token)
+                #print(access_token)
                 newUser = User(username = user, accessToken = access_token)
                 newUser.save()
                 userData = User.get(User.username == user)
@@ -129,22 +132,25 @@ class api_user(Resource):
                 else:
                     # User connected
                     data = response.json()
-                    print(data)
+                    #print(data)
                     access_token = data['access_token']
-                    print(access_token)
+                    #print(access_token)
                     newUser = User(username = user, accessToken = access_token)
                     newUser.save()
                     userData = User.get(User.username == user)
                     userData = jsonify(model_to_dict(userData))
                     return userData
 
-@api.resource('/users/<user>/info')
+@api.resource('/users/<user>/info') #Change to 'get' command for user?
 class api_info(Resource):
+   # params: None
+   # returns: Json data - user info {"accesstoken", "id", "username"}
+   # Connects to connect user (if it exists - need to create user first) and returns user info
    def get(self, user):
        userData = User.get(User.username == user)
        userData = model_to_dict(userData)
        access_token = userData['accessToken']
-       print(access_token)
+       #print(access_token)
        client = Client(client_id=id, secret=secret, access_token=access_token)
        client.upgrade('info')
        info = client.info_get().json()
@@ -152,28 +158,37 @@ class api_info(Resource):
 
 @api.resource('/users/<user>/balances')
 class api_balances(Resource):
+   # params: None
+   # returns: Json data - user balance info {"accounts"[... "balance" {"available", "current"} ...], "access_token"}
+   # Connects to connect user (if it exists - need to create user first) and returns user balance info
    def get(self, user):
        userData = User.get(User.username == user)
        userData = model_to_dict(userData)
        access_token = userData['accessToken']
-       print(access_token)
+       #print(access_token)
        client = Client(client_id=id, secret=secret, access_token=access_token)
        balance = client.balance().json()
        return balance
 
 @api.resource('/users/<user>/transactions')
 class api_transactions(Resource):
+   # params: None
+   # returns: Json data - user transaction info {"accounts"[...], "transactions"[...]}
+   # Connects to connect user (if it exists - need to create user first) and returns user info
    def get(self, user):
        userData = User.get(User.username == user)
        userData = model_to_dict(userData)
        access_token = userData['accessToken']
-       print(access_token)
+       #print(access_token)
        client = Client(client_id=id, secret=secret, access_token=access_token)
        transactions = client.connect_get().json()
        return transactions
 
 @api.resource('/institutions')
 class api_institutions(Resource):
+   # params: None
+   # returns: Json data - institution info {"accesstoken", "id", "username"}
+   # Connects to plaid api and returns institution info
    def get(self):
        institutions = client.institutions().json()
        return institutions
