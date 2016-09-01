@@ -121,6 +121,7 @@ class api_user(Resource):
                 newUser.save()
                 userData = User.get(User.username == user)
                 userData = jsonify(model_to_dict(userData))
+                client.upgrade('info')
                 return userData
             elif response.status_code == 201:
                 # MFA required
@@ -139,6 +140,7 @@ class api_user(Resource):
                     newUser.save()
                     userData = User.get(User.username == user)
                     userData = jsonify(model_to_dict(userData))
+                    client.upgrade('info')
                     return userData
 
 @api.resource('/users/<user>/info') #Change to 'get' command for user?
@@ -152,7 +154,7 @@ class api_info(Resource):
        access_token = userData['accessToken']
        #print(access_token)
        client = Client(client_id=id, secret=secret, access_token=access_token)
-       client.upgrade('info')
+       #client.upgrade('info')
        info = client.info_get().json()
        return info
 
