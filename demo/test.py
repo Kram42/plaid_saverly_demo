@@ -37,7 +37,7 @@ class User(BaseModel):
         order_by = ('name',)"""
 
 
-#database.create_table(User)
+database.create_table(User, safe=True)
 
 
 Client.config({
