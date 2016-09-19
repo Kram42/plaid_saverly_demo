@@ -79,10 +79,12 @@ def answer_question(questions): #questions
 def answer_list(devices): #devices
     # You should specify the device to which the passcode is sent.
     # The available devices are present in the devices list
-    code = input("Enter code: ")
-    return client.connect_step('chase', code, options={
+    step1 = client.connect_step('chase', None, options={
         'send_method': {'type': 'email'}
     })
+    #print(step1)
+    code = input("Enter the MFA code: ") # 41110147
+    return client.connect_update_step('chase', code)
 
 def answer_selections(selections): #selections
     # We have magically inferred the answers
@@ -126,10 +128,10 @@ class api_user(Resource):
             elif response.status_code == 201:
                 # MFA required
                 try:
-                    mfa_response = answer_mfa(response.json())
+                    mfa_response = answer_mfa(response.json(), client)
                     print(mfa_response)
-                except plaid_errors.PlaidError:
-                    print("MFA Error")
+                except plaid_errors.PlaidError as e:
+                    print(e)
                 else:
                     # User connected
                     data = response.json()
