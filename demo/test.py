@@ -45,8 +45,8 @@ Client.config({
 })
 #ident = Person.get(Person.name == 'Grandma L.')
 #print(ident)
-id = "57b4faff66710877408d0856"             # obtain id and secret from db, same for all queries
-secret = "45d1a44d9c7a4f3ede7d61bfc32630"
+id = "57b4e70c66710877408d0855"             # obtain id and secret from db, same for all queries
+secret = "d416705651d48d87e080e966c80421"
 """ident = Credentials(name = 'main', id = id, secret = secret)
 ident.save()
 ident = Credentials.get(Credentials.name == 'main')
@@ -79,9 +79,9 @@ def answer_question(questions): #questions
 def answer_list(devices): #devices
     # You should specify the device to which the passcode is sent.
     # The available devices are present in the devices list
-    step1 = client.connect_step('chase', None, options={
-        'send_method': {'type': 'email'}
-    })
+    #step1 = client.connect_step('chase', None, options={
+    #    'send_method': {'type': 'email'}
+    #})
     #print(step1)
     code = input("Enter the MFA code: ") # 41110147
     return client.connect_update_step('chase', code)
@@ -110,7 +110,8 @@ class api_user(Resource):
                 'username': user,  # tedwerbel0901
                 'password': jsonData['password']   # #Saverly7114#
             })
-        except plaid_errors.UnauthorizedError:
+        except plaid_errors.UnauthorizedError as e:
+            print(e)
             print("Password Error")
         else:
             if response.status_code == 200:
